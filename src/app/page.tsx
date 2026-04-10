@@ -24,21 +24,29 @@ function timeAgo(date: Date): string {
 }
 
 export default async function HomePage() {
-  const jobs = await prisma.job.findMany({
-    where: { is_active: true },
-    orderBy: { created_at: 'desc' },
-    take: 6,
-    select: {
-      id: true,
-      title: true,
-      company_name: true,
-      location: true,
-      type: true,
-      created_at: true,
-    },
-  })
+  let jobs: { id: string; title: string; company_name: string; location: string; type: string; created_at: Date }[] = []
+  let totalJobs = 0
 
-  const totalJobs = await prisma.job.count({ where: { is_active: true } })
+  try {
+    ;[jobs, totalJobs] = await Promise.all([
+      prisma.job.findMany({
+        where: { is_active: true },
+        orderBy: { created_at: 'desc' },
+        take: 6,
+        select: {
+          id: true,
+          title: true,
+          company_name: true,
+          location: true,
+          type: true,
+          created_at: true,
+        },
+      }),
+      prisma.job.count({ where: { is_active: true } }),
+    ])
+  } catch {
+    // DB unavailable — render page without job listings
+  }
 
   return (
     <div className="min-h-screen">
@@ -119,10 +127,10 @@ export default async function HomePage() {
 
           <div className="mt-6 text-center">
             <Link
-              href="/signup?role=job_seeker"
+              href="/jobs"
               className="inline-flex items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-700"
             >
-              Create a free account to apply →
+              View all jobs →
             </Link>
           </div>
         </div>
@@ -173,7 +181,7 @@ export default async function HomePage() {
           </div>
 
           <div className="mt-12 text-center">
-            <Link href="/signup?role=job_seeker" className="theme-button-primary px-8 py-3.5 text-base">
+            <Link href="/jobs" className="theme-button-primary px-8 py-3.5 text-base">
               Browse jobs — it&apos;s free
             </Link>
           </div>
@@ -255,7 +263,7 @@ export default async function HomePage() {
             Job seekers browse free. Employers post for $99.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link href="/signup?role=job_seeker" className="theme-button-primary w-full sm:w-auto px-8 py-3.5 text-base">
+            <Link href="/jobs" className="theme-button-primary w-full sm:w-auto px-8 py-3.5 text-base">
               Browse jobs free
             </Link>
             <Link href="/employer/jobs/new" className="theme-button-secondary w-full sm:w-auto px-8 py-3.5 text-base">

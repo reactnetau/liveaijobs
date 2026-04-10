@@ -28,17 +28,32 @@ function EmployerJobsContent() {
   const searchParams = useSearchParams()
   const { enqueueSnackbar } = useSnackbar()
   const paymentSuccess = searchParams.get('payment') === 'success'
+  const sessionId = searchParams.get('session_id')
   const [jobs, setJobs] = useState<Job[]>([])
   const [loading, setLoading] = useState(true)
   const [payingJobId, setPayingJobId] = useState<string | null>(null)
 
+  async function loadJobs() {
+    const data = await fetch('/api/employer/jobs').then((r) => r.json())
+    setJobs(Array.isArray(data) ? data : [])
+    setLoading(false)
+  }
+
+  // On mount: if returning from Stripe, verify the session first then load jobs
   useEffect(() => {
-    fetch('/api/employer/jobs')
-      .then((r) => r.json())
-      .then((data) => {
-        setJobs(Array.isArray(data) ? data : [])
-        setLoading(false)
-      })
+    if (paymentSuccess && sessionId) {
+      fetch(`/api/payments/verify-session?session_id=${sessionId}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.ok) {
+            enqueueSnackbar('Payment confirmed — your job is now live!', { variant: 'success' })
+          }
+        })
+        .finally(() => loadJobs())
+    } else {
+      loadJobs()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   async function activateJob(jobId: string) {

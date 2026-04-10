@@ -33,6 +33,7 @@ export async function POST(req: NextRequest) {
 
   const stripeSession = await stripe.checkout.sessions.create({
     mode: 'payment',
+    customer_email: session.email,
     line_items: [
       {
         price_data: {
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest) {
       },
     ],
     metadata: { job_id: job.id },
-    success_url: `${appUrl}/employer/jobs?payment=success`,
+    success_url: `${appUrl}/employer/jobs?payment=success&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${appUrl}/employer/jobs`,
   })
 

@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from 'react'
 import Link from 'next/link'
 import Nav from '@/components/Nav'
+import MarketingNav from '@/components/MarketingNav'
 import { useSearchParams } from 'next/navigation'
 
 interface Job {
@@ -12,6 +13,10 @@ interface Job {
   location: string
   type: string
   created_at: string
+}
+
+interface UserInfo {
+  role: 'employer' | 'job_seeker'
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -35,22 +40,27 @@ function timeAgo(date: Date): string {
 function JobsContent() {
   const searchParams = useSearchParams()
   const [jobs, setJobs] = useState<Job[]>([])
+  const [user, setUser] = useState<UserInfo | null | undefined>(undefined)
   const [loading, setLoading] = useState(true)
   const justApplied = searchParams.get('applied') === '1'
 
   useEffect(() => {
-    fetch('/api/jobs')
-      .then((r) => r.json())
-      .then((data) => {
-        setJobs(Array.isArray(data) ? data : [])
-        setLoading(false)
-      })
+    Promise.all([
+      fetch('/api/jobs').then((r) => r.json()),
+      fetch('/api/user/me').then((r) => r.ok ? r.json() : null),
+    ]).then(([jobsData, userData]) => {
+      setJobs(Array.isArray(jobsData) ? jobsData : [])
+      setUser(userData)
+      setLoading(false)
+    })
   }, [])
+
+  const NavComponent = user ? Nav : MarketingNav
 
   if (loading) {
     return (
       <>
-        <Nav />
+        <MarketingNav />
         <main className="max-w-4xl mx-auto px-4 py-8">
           <p className="text-slate-500 text-sm">Loading…</p>
         </main>
@@ -60,7 +70,7 @@ function JobsContent() {
 
   return (
     <>
-      <Nav />
+      <NavComponent />
       <main className="max-w-4xl mx-auto px-4 py-8">
         {justApplied && (
           <div className="mb-6 bg-green-50 border border-green-200 rounded-xl px-5 py-4">
@@ -107,6 +117,19 @@ function JobsContent() {
                 </div>
               </Link>
             ))}
+          </div>
+        )}
+
+        {/* Sign up nudge for visitors */}
+        {!user && jobs.length > 0 && (
+          <div className="mt-8 bg-indigo-50 border border-indigo-100 rounded-2xl px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold text-indigo-900">Want to apply?</p>
+              <p className="text-xs text-indigo-700 mt-0.5">Create a free account to apply to any of these roles.</p>
+            </div>
+            <Link href="/signup?role=job_seeker" className="theme-button-primary shrink-0 text-sm px-4 py-2">
+              Sign up free
+            </Link>
           </div>
         )}
       </main>
