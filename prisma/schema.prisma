@@ -1,0 +1,76 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String        @id @default(uuid())
+  email         String        @unique
+  password_hash String
+  role          String        // "employer" | "job_seeker"
+  created_at    DateTime      @default(now())
+  jobs          Job[]
+  applications  Application[]
+}
+
+model Job {
+  id              String        @id @default(uuid())
+  employer_id     String
+  employer        User          @relation(fields: [employer_id], references: [id], onDelete: Cascade)
+  title           String
+  company_name    String
+  company_website String?
+  location        String
+  type            String        // "full-time" | "part-time" | "contract" | "remote"
+  description     String
+  apply_type      String        // "external" | "internal"
+  apply_url       String?
+  is_active       Boolean       @default(false)
+  created_at      DateTime      @default(now())
+  applications    Application[]
+  payments        Payment[]
+}
+
+model Application {
+  id           String   @id @default(uuid())
+  job_id       String
+  job          Job      @relation(fields: [job_id], references: [id], onDelete: Cascade)
+  user_id      String
+  user         User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  name         String
+  email        String
+  resume_url   String?
+  cover_letter String?
+  created_at   DateTime @default(now())
+}
+
+model Payment {
+  id                String   @id @default(uuid())
+  job_id            String
+  job               Job      @relation(fields: [job_id], references: [id], onDelete: Cascade)
+  stripe_session_id String   @unique
+  amount            Int      // in cents
+  status            String   @default("pending") // "pending" | "paid"
+  created_at        DateTime @default(now())
+}
+
+model ScrapedJob {
+  id          String    @id @default(uuid())
+  title       String
+  company     String
+  location    String
+  is_remote   Boolean   @default(false)
+  url         String    @unique
+  source      String    // e.g. "Remotive", "Mock"
+  description String?
+  posted_at   DateTime?
+  created_at  DateTime  @default(now())
+
+  @@index([created_at])
+  @@index([is_remote])
+  @@index([source])
+}
