@@ -13,11 +13,18 @@ function SignupForm() {
   const defaultRole = searchParams.get('role') === 'employer' ? 'employer' : 'job_seeker'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [role, setRole] = useState<'employer' | 'job_seeker'>(defaultRole)
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
+
+    if (password !== confirmPassword) {
+      enqueueSnackbar('Passwords do not match', { variant: 'error' })
+      return
+    }
+
     setLoading(true)
 
     const res = await fetch('/api/auth/signup', {
@@ -129,6 +136,19 @@ function SignupForm() {
                 minLength={8}
                 className="theme-input"
                 placeholder="At least 8 characters"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Confirm password</label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                minLength={8}
+                className="theme-input"
+                placeholder="Re-enter your password"
               />
             </div>
 
